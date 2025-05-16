@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 	grrect(10, 10, 100, 100);
 	grcircle(100, 100, 10);
 	ppm();
-	png();
+	//png();
 
 	grquit();
 }
