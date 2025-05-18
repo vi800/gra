@@ -3,3 +3,4 @@
 2. can make a .ppm image file which displays the contents of the buffer
 ## compile command
 ```gcc gra.c -lm```
+```code```
