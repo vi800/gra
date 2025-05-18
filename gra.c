@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <math.h>
 //#include "SDL2/SDL.h"
 
 #define W 300
@@ -15,32 +16,22 @@ void png();
 
 struct {
 	uint32_t color;
-	char *title;
-	int wx, wy;
 } gc;
 
 uint32_t pixels[W*H];
 
 int main(int argc, char **argv)
 {
-	grinit();
-	gc.color = 0x0000ff;
+	gc.color = 0xffffff;
 	grclear();
 	gc.color = 0xff0000;
-	grrect(10, 10, 100, 100);
-	grcircle(100, 100, 10);
+	grrect(10, 10, 10, 20);
+	grcircle(100, 100, 90);
 	ppm();
-	//png();
-
-	grquit();
 }
 
 void grinit()
-{
-	gc.wx=0;
-	gc.wy=0;
-	gc.color = 0xffffff;
-}
+{}
 
 void grquit()
 {}
@@ -65,16 +56,19 @@ void grrect(int x, int y, int l, int b)
 
 void grcircle(int x, int y, int r)
 {
-	/*
 	int i, j, x0;
-	for(j=y-r; j<y+r; j++) {
-		x0 = x+sqrt(r*r - (j-y)*(j-y));
-		for(i=x0-r; i<x0+r; i++) {
+	for(j=y-r; j<=y+r; j++) {
+		x0 = sqrt(r*r - (j-y)*(j-y));
+		for(i=x-x0; i<=x+x0; i++)
 			pixels[j*W+i] = gc.color;
-		}
 	}
-	*/
 }
+
+void grtriangle(
+	int x1, int x2, int x3, 
+	int y1, int y2, int y3
+)
+{}
 
 void ppm()
 {
@@ -123,35 +117,83 @@ void png()
 	uint32_t chunklen;
 	uint8_t chunktyp[4];
 	uint32_t chunkcrc;
+
+	uint32_t bot;
+	uint8_t byt;
 	while(*(uint32_t*)chunktyp != 0x444E4549) {
 		//chunk length
 		fread(&chunklen, 4, 1, f);
 		rev(&chunklen, 4);
-		printf("chunk len: %u\n", chunklen);
-
 		//chunk type
 		fread(chunktyp, 4, 1, f);
-		printf("chunk typ: %.*s 0x%08X\n", 4, chunktyp, *(uint32_t*)chunktyp);
-
 		//skip data section
-		fseek(f, chunklen, SEEK_CUR);
-
+		if(*(uint32_t*)chunktyp == 0x52444849) {
+			fread(&bot, 4, 1, f);
+			rev(&bot, 4);
+			printf("Width: \t\t%zu\n", bot);
+			fread(&bot, 4, 1, f);
+			rev(&bot, 4);
+			printf("Height: \t%zu\n", bot);
+			
+			fread(&byt, 1, 1, f);
+			printf("Bit Depth: \t%u\n", byt);
+			fread(&byt, 1, 1, f);
+			printf("Color Type: \t%u\n", byt);
+			fread(&byt, 1, 1, f);
+			printf("Comp Method: \t%u\n", byt);
+			fread(&byt, 1, 1, f);
+			printf("Filter Method: \t%u\n", byt);
+			fread(&byt, 1, 1, f);
+			printf("Intrlce Method: %u\n", byt);
+		}
+		//IDAT chunk
+		else if(*(uint32_t*)chunktyp == 0x54414449) {
+			uint8_t comp;
+			fread(&comp, 1, 1, f);
+			printf("Compression flags: \t%x\n", comp);
+			fread(&comp, 1, 1, f);
+			printf("Additional flags: \t%x\n", comp);
+			break;
+		}
+		else fseek(f, chunklen, SEEK_CUR);
 		//chunk crc
 		fread(&chunkcrc, 4, 1, f);
 		rev(&chunkcrc, 4);
+
+		printf("------------------------------------\n");
+		printf("chunk len: %u\n", chunklen);
+		printf("chunk typ: %.*s 0x%08X\n", 4, chunktyp, *(uint32_t*)chunktyp);
 		printf("chunk crc: %u\n", chunkcrc);
 		printf("------------------------------------\n");
+
+/*
+	DEFLATE
+
+		int in;
+		while(fread(&in, 1, 1, f) != EOF) {
+    		match := longest repeated occurrence of input that begins in window
+			int m = getm(in);
+			int d, l, c;
+
+    		if(m != -1) {
+        		d = distance to start of match
+	    	    l = length of match
+    		    c = char following match in input
+		    } else {
+    		    d = 0
+        		l = 0
+        		c = first char of input
+		    }
+			printf("d:%d, l:%d, c:%c", d, l, c);
+    		
+			discard l + 1 chars from front of window
+	    	s := pop l + 1 chars from front of input
+    		append s to back of window
+		}
+*/	
 	}
 	fclose(f);
 }
-
-	/*
-	len
-	chunk type 
-	chunk data
-	IHDR: (w, h):4, (bitdepth, colortype, compressionmethod, filtermethod, interlacemethod):1
-	crc
-	*/
 
 void sdl()
 {}
